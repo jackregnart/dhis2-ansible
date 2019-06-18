@@ -38,6 +38,10 @@ There's a file called `all-playbooks.yml` which basically runs through all the i
 - import_playbook: nginx-playbook.yml
 ```
 
+## Add public key
+
+Add your public ssh key to `server.yml` so that ansible can run commands over ssh without requiring a password.
+
 ## Setup your inventory
 
 Define the hostname and user of the server you're deploying to in the your inventory `_dhis2-server-credentials.ini`
