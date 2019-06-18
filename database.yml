@@ -1,0 +1,39 @@
+---
+- hosts: dhis
+  become: yes
+  vars_files:
+    - vars/main.yml
+  roles:
+    - geerlingguy.postgresql
+  tasks:
+    - name: Install postgis
+      apt:
+        name:
+          ["postgresql-{{ postgresql_version }}-postgis-2.4"]
+
+    - name: Ensure postgis
+      become_user: "{{ postgresql_user }}"
+      become: yes
+      postgresql_ext:
+        name: postgis
+        db: "{{ postgresql_dhis_db }}"
+
+      vars:
+        ansible_ssh_pipelining: true
+
+    - name: Creating DHIS conf dir
+      become_user: dhis
+      become: yes
+      file:
+        path: "{{ dhis2_config_dir }}"
+        state: directory
+
+    - name: Creating DHIS conf file
+      become_user: dhis
+      become: yes
+      template:
+        src: configs/dhis2.conf
+        dest: "{{ dhis2_config_path }}"
+        owner: dhis
+        group: dhis
+        mode: 0600

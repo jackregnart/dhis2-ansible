@@ -1,0 +1,57 @@
+---
+- hosts: dhis
+  remote_user: root
+  become: yes
+  tasks:
+    - name: Update all packages to the latest version
+      apt:
+        upgrade: dist
+    - name: Add dhis user
+      user:
+        name: dhis
+        shell: /bin/bash
+    - name: Add SSH key to server for dhis user
+      authorized_key:
+        user: dhis
+        key: "YOUR SSH PUBLIC KEY HERE"
+    - name: Install dependencies
+      apt:
+        name:
+          [
+            'gcc',
+            'autoconf',
+            'bison',
+            'build-essential',
+            'curl',
+            'git',
+            'libffi-dev',
+            'libgdbm-dev',
+            'libncurses5-dev',
+            'libreadline-dev',
+            'libreadline6-dev',
+            'libssl-dev',
+            'libyaml-dev',
+            'zlib1g-dev',
+            'nodejs'
+          ]
+
+    - name: add nginx apt repository
+      apt_repository:
+        repo: ppa:webupd8team/java
+        update_cache: yes
+
+    - name: accept java terms
+      debconf:
+        name: oracle-java8-installer
+        question: shared/accepted-oracle-license-v1-1
+        value: true
+        vtype: select
+
+    - name: Automatically select the Oracle License
+      shell: echo debconf shared/accepted-oracle-license-v1-1 select true | sudo debconf-set-selections
+
+    - name: install oracle-java8-installer
+      apt:
+        name: oracle-java8-installer
+        state: present
+        update_cache: yes

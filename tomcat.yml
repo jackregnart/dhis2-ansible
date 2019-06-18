@@ -1,0 +1,21 @@
+- hosts: dhis
+  remote_user: dhis
+  become: yes
+  vars_files:
+    - vars/main.yml
+  roles:
+    - { role: idealista.tomcat-role }
+
+  tasks:
+    - name: Install tomcat conf
+      template:
+        src: configs/server.xml
+        dest: /home/dhis/tomcat-dhis/conf/server.xml
+
+    - name: Add DHIS2 env variables to setenv
+      blockinfile:
+        path: /home/dhis/tomcat-dhis/bin/setenv.sh
+        block: |
+          export JAVA_HOME='/usr/lib/jvm/java-8-oracle/'
+          export JAVA_OPTS='-Xmx6000m -Xms4000m'
+          export DHIS2_HOME='/home/dhis/config'

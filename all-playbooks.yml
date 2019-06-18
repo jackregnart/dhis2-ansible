@@ -1,0 +1,6 @@
+---
+- import_playbook: server.yml
+- import_playbook: database.yml
+- import_playbook: tomcat.yml
+- import_playbook: nginx-from-source.yml
+- import_playbook: nginx.yml

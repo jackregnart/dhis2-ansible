@@ -1,0 +1,75 @@
+---
+dhis2_config_dir: /home/dhis/config
+dhis2_config_path: "{{ dhis2_config_dir }}/dhis.conf"
+
+postgresql_dhis_db: dhis2
+postgresql_dhis_user: dhis
+postgresql_dhis_password: PASSWORD_HERE
+postgresql_dhis_enryption_key: PASSWORD_HERE
+
+postgresql_databases:
+  - name: "{{ postgresql_dhis_db }}"
+    auth_method: md5
+
+postgresql_users:
+  - name: "{{ postgresql_dhis_user }}"
+    password: "{{ postgresql_dhis_password }}"
+    db: "{{ postgresql_dhis_db }}"
+
+postgresql_hba_entries:
+  - { type: local, database: all, user: all, auth_method: peer }
+  - { type: local, database: all, user: postgres, auth_method: md5 }
+  - { type: host, database: all, user: all, address: '127.0.0.1/32', auth_method: md5 }
+  - { type: host, database: all, user: all, address: '::1/128', auth_method: md5 }
+
+postgresql_locales:
+  - 'en_GB.UTF-8'
+
+## General
+
+tomcat_version: 8.5.31
+
+## Service options
+
+# Owner
+tomcat_user: dhis
+tomcat_group: dhis
+
+# start on boot
+tomcat_service_enabled: yes
+# current state: started, stopped
+tomcat_service_state: started
+
+# Files & Paths
+tomcat_install_path: /home/dhis/tomcat-dhis
+tomcat_bin_path: "{{ tomcat_install_path }}/bin"
+tomcat_conf_path: "{{ tomcat_install_path }}/conf"
+tomcat_webapps_path: "{{ tomcat_install_path }}/webapps"
+
+## CATALINA_OPTS
+tomcat_catalina_opts:
+  - -Xms4000m
+  - -Xmx7500m
+
+## Tomcat users
+tomcat_users:
+  - name: admin
+    password: PASSWORD_HERE
+    roles: manager-gui
+
+tomcat_download_wars: true
+tomcat_war_to_deploy_urls:
+  - url: https://s3-eu-west-1.amazonaws.com/releases.dhis2.org/2.31/2.31.1/dhis.war
+    name: ROOT.war
+
+tomcat_local_wars: false
+tomcat_war_to_deploy_path:
+  - "{{ playbook_dir }}/ROOT.war"
+
+tomcat_pre_installed_folders_deployed:
+  ROOT:
+    deployed: false
+  docs:
+    deployed: false
+  examples:
+    deployed: false

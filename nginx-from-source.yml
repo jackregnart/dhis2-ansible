@@ -1,0 +1,86 @@
+---
+
+- name: Compile NGINX from sources
+  hosts: dhis
+  vars:
+    nginx_version: nginx-1.15.9
+    nginx_tarball_url: "http://nginx.org/download/{{ nginx_version }}.tar.gz"
+    nginx_install_dir: "/tmp/{{ nginx_version }}"
+    nginx_sbin_path: "/usr/sbin/nginx"
+    nginx_conf_path: "/etc/nginx/nginx.conf"
+    nginx_custom_modules: "--prefix=/etc/nginx --modules-path=/usr/lib/nginx/modules --error-log-path=/var/log/nginx/error.log --http-log-path=/var/log/nginx/access.log --pid-path=/var/run/nginx.pid --lock-path=/var/run/nginx.lock --http-client-body-temp-path=/var/cache/nginx/client_temp --http-proxy-temp-path=/var/cache/nginx/proxy_temp --http-fastcgi-temp-path=/var/cache/nginx/fastcgi_temp --http-uwsgi-temp-path=/var/cache/nginx/uwsgi_temp --http-scgi-temp-path=/var/cache/nginx/scgi_temp --user=nginx --group=nginx --with-compat --with-file-aio --with-threads --with-http_addition_module --with-http_auth_request_module --with-http_dav_module --with-http_flv_module --with-http_gunzip_module --with-http_gzip_static_module --with-http_mp4_module --with-http_random_index_module --with-http_realip_module --with-http_secure_link_module --with-http_slice_module --with-http_ssl_module --with-http_stub_status_module --with-http_sub_module --with-http_v2_module --with-mail --with-mail_ssl_module --with-stream --with-stream_realip_module --with-stream_ssl_module --with-stream_ssl_preread_module"
+
+  tasks:
+  - name: Installing NGINX Dependencies
+    become: yes
+    apt:
+      name: "{{ item }}"
+      update_cache: yes
+    with_items:
+      - libssl-dev
+      - zlib1g-dev
+      - libpcre3
+      - libpcre3-dev
+      - unzip
+
+  - name: Downloading NGINX sources
+    get_url:
+      url: "{{ nginx_tarball_url }}"
+      dest: "/tmp/{{ nginx_version }}.tar.gz"
+    register: nginx_source
+
+  - name: Unpacking NGINX
+    unarchive:
+      copy: no
+      dest: /tmp/
+      src: "{{ nginx_source.dest }}"
+    when: nginx_source.changed
+    register: nginx_source_unpack
+
+  - name: Create required Nginx dirs
+    become: yes
+    file:
+      path: /etc/nginx
+      state: directory
+      owner: root
+      mode: 0755
+
+  - name: Configuring NGINX source with custom modules
+    command: "./configure --sbin-path={{ nginx_sbin_path }} --conf-path={{ nginx_conf_path }} {{ nginx_custom_modules }}"
+    args:
+      chdir: "{{ nginx_install_dir }}"
+    when: nginx_source_unpack|changed
+    register: nginx_configure
+
+  - name: Installing NGINX
+    become: yes
+    shell: make && make install
+    args:
+      chdir: "{{ nginx_install_dir }}"
+    when: nginx_configure|changed
+
+  - name: Creating NGINX conf file
+    become: yes
+    template:
+      src: nginx-http.conf
+      dest: "{{ nginx_conf_path }}"
+      owner: "{{ ansible_user }}"
+      group: "{{ ansible_user }}"
+      mode: 0644
+
+  - name: Installing NGINX init script (service)
+    become: yes
+    template:
+      src: nginx.init
+      dest: /etc/init.d/nginx
+      owner: root
+      group: root
+      mode: 0755
+
+  - name: Starting NGINX
+    become: yes
+    service:
+      name: nginx
+      state: started
+      enabled: yes
+      use: service
